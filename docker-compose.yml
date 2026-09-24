@@ -1,0 +1,56 @@
+# 三类异常场景的 Docker 验证编排（命令与预期现象见 VERIFY.md）：
+#   docker network disconnect chatnet chat-alice  = 拔网线 / 关 WiFi（对端无 FIN，半开窗口）
+#   docker kill chat-alice                       = kill -9 / 任务管理器结束
+#   docker restart chat-server                   = 服务器重启（DB 在 chat-data 卷，不丢）
+services:
+  server:
+    build: .
+    image: online-chat:latest
+    container_name: chat-server
+    command: ["./chat_server_v5", "8888", "--db", "/data/chat_server_v5.db", "--log-dir", "/data/logs"]
+    volumes:
+      - chat-data:/data
+    ports:
+      - "8888:8888"
+    networks: [chatnet]
+
+  # 交互 headless 客户端（不随 up 启动，手工 run 拉起；不要加 --rm，异常场景要对它动手）：
+  #   docker compose --profile client run --name chat-alice client \
+  #       --user alice --password 123 --pending-file /data/chat_pending_alice.json
+  #   docker compose --profile client run --name chat-bob client \
+  #       --user bob --password 456 --pending-file /data/chat_pending_bob.json
+  # Token 免密重连：--session-file /data/chat_session_alice.json（挂 chat-data 卷，重启不丢）
+  # 用完清理：docker rm -f chat-alice chat-bob
+  client:
+    image: online-chat:latest
+    profiles: ["client"]
+    depends_on: [server]
+    stdin_open: true
+    tty: true
+    entrypoint: ["python3", "client/chat_client_v4.py", "server", "--port", "8888", "--headless"]
+    volumes:
+      - chat-data:/data
+    networks: [chatnet]
+
+  # 端到端冒烟 / 灌数据压测（一次性）：
+  #   docker compose --profile test run --rm test-smoke
+  #   docker compose --profile test run --rm test-bench
+  test-smoke:
+    image: online-chat:latest
+    profiles: ["test"]
+    depends_on: [server]
+    entrypoint: ["python3", "tools/test_v5_smoke.py"]
+    networks: [chatnet]
+
+  test-bench:
+    image: online-chat:latest
+    profiles: ["test"]
+    entrypoint: ["python3", "tools/seed_and_bench.py"]
+    networks: [chatnet]
+
+volumes:
+  chat-data:
+
+networks:
+  chatnet:
+    name: chatnet

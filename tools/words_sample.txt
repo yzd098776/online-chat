@@ -1,0 +1,7 @@
+# 敏感词表样例（tools/words_sample.txt）——一行一词，# 开头为注释
+# 用法：./chat_server_v5 8888 --words tools/words_sample.txt --filter-mode replace
+#   replace = 命中词替换为 *（默认）；reject = 拒绝发送（E4003）
+违禁
+敏感词
+敏感
+badword

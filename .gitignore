@@ -1,0 +1,28 @@
+# 构建产物
+build/
+build-*/
+*.o
+*.gcno
+*.gcda
+*.gcov
+chat_server_v5
+chat_tests
+
+# 运行时数据
+logs/
+# 自签证书含私钥——tools/gen_cert.sh 随时可再生，不入库
+certs/
+*.db
+*.db-wal
+*.db-shm
+chat_session_*.json
+chat_pending_*.json
+
+# Python
+__pycache__/
+*.pyc
+
+# 编辑器
+.vscode/
+.idea/
+secrets/
